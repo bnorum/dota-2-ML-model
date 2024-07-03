@@ -1,0 +1,35 @@
+import joblib
+import logging
+from app.utils import preprocess_match_data
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Load your model (make sure to have this model saved in the correct path)
+model_path = 'app/models/model.pkl'
+model = None
+
+try:
+    model = joblib.load(model_path)
+    logging.info("Model loaded successfully.")
+except FileNotFoundError:
+    logging.error("Model file not found.")
+except EOFError:
+    logging.error("EOFError: The model file might be empty or corrupted.")
+except ImportError as e:
+    logging.error(f"ImportError: {e}")
+except Exception as e:
+    logging.error(f"An error occurred while loading the model: {e}")
+
+def analyze_match(match_data):
+    if model is None:
+        return {'error': 'Model could not be loaded'}
+
+    try:
+        preprocessed_data = preprocess_match_data(match_data)
+        if preprocessed_data is None:
+            return {'error': 'Preprocessing failed'}
+        prediction = model.predict(preprocessed_data)
+        return {'radiant_win': prediction[0]}
+    except Exception as e:
+        return {'error': f'Analysis failed: {e}'}

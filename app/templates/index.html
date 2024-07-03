@@ -1,0 +1,27 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dota 2 Match Analyzer</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Dota 2 Match Analyzer</h1>
+    <form id="analyze-form">
+        <input type="text" name="match_id" placeholder="Enter Match ID">
+        <button type="submit">Analyze</button>
+    </form>
+    <div id="result"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $('#analyze-form').on('submit', function(event) {
+            event.preventDefault();
+            var match_id = $('input[name="match_id"]').val();
+            $.post('/analyze', {match_id: match_id}, function(data) {
+                $('#result').html('Radiant Win Prediction: ' + data.radiant_win);
+            });
+        });
+    </script>
+</body>
+</html>
