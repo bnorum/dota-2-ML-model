@@ -1,10 +1,7 @@
 import requests
 import pandas as pd
 import logging
-from sklearn.ensemble import RandomForestClassifier
-import joblib
-import os
-import numpy as np
+from sklearn.preprocessing import MultiLabelBinarizer
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -69,67 +66,3 @@ def preprocess_detailed_matches(detailed_matches):
     logging.debug(f"DataFrame columns: {final_df.columns}")
     logging.debug(f"First few rows:\n{final_df.head()}")
     return final_df
-
-# Train the model and save columns
-def train_model(detailed_matches):
-    preprocessed_matches = preprocess_detailed_matches(detailed_matches)
-    
-    if preprocessed_matches.empty:
-        logging.error("The DataFrame is empty. No data to train the model.")
-        return
-
-    # Separate features and target
-    X = preprocessed_matches.drop(columns=['radiant_win'])
-    y = preprocessed_matches['radiant_win']
-
-    logging.debug(f"Training DataFrame columns: {X.columns}")
-    logging.debug(f"Training DataFrame first few rows:\n{X.head()}")
-
-    model = RandomForestClassifier()
-    model.fit(X, y)
-
-    # Save the trained model and the columns
-    model_path = 'app/models/model.pkl'
-    columns_path = 'app/models/columns.pkl'
-    os.makedirs(os.path.dirname(model_path), exist_ok=True)
-    joblib.dump(model, model_path)
-    joblib.dump(X.columns, columns_path)
-
-    logging.info("Model and columns saved successfully.")
-
-# Load the model and make a prediction
-def make_prediction(data):
-    model_path = 'app/models/model.pkl'
-    columns_path = 'app/models/columns.pkl'
-
-    if not (os.path.exists(model_path) and os.path.exists(columns_path)):
-        logging.error("Model or columns file does not exist.")
-        return None
-
-    model = joblib.load(model_path)
-    columns = joblib.load(columns_path)
-
-    data_df = pd.DataFrame([data])
-    X = data_df.drop(columns=['radiant_win'], errors='ignore').reindex(columns=columns, fill_value=0)
-
-    logging.debug(f"Prediction DataFrame columns: {X.columns}")
-    logging.debug(f"Prediction DataFrame first few rows:\n{X.head()}")
-
-    prediction = model.predict(X)
-    if isinstance(prediction, np.ndarray):
-        prediction = prediction.tolist()  # Convert ndarray to list for JSON serialization
-    return prediction
-
-# Example usage:
-# Fetch match data
-match_ids = [12345, 67890]  # Example match IDs
-detailed_matches = [fetch_match_data(match_id) for match_id in match_ids]
-train_model(detailed_matches)
-
-# To make a prediction:
-sample_data = {'radiant_hero_0': 1, 'radiant_hero_1': 2, 'radiant_hero_2': 3, 'radiant_hero_3': 4, 'radiant_hero_4': 5, 'dire_hero_0': 6, 'dire_hero_1': 7, 'dire_hero_2': 8, 'dire_hero_3': 9, 'dire_hero_4': 10}
-prediction = make_prediction(sample_data)
-if prediction is not None:
-    print(f"Prediction: {prediction}")
-else:
-    print("Failed to make a prediction.")

@@ -1,0 +1,88 @@
+from flask import Flask, request, jsonify, render_template
+import joblib
+import pandas as pd
+import os
+import logging
+import numpy as np
+
+app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+# Load the model and columns
+model_path = 'app/models/model.pkl'
+columns_path = 'app/models/columns.pkl'
+
+if os.path.exists(model_path) and os.path.exists(columns_path):
+    model = joblib.load(model_path)
+    columns = joblib.load(columns_path)
+    logging.info("Model and columns loaded successfully.")
+else:
+    logging.error("Model or columns file does not exist.")
+    model = None
+    columns = None
+
+def make_prediction(data):
+#    if not model or not columns:
+ #       return None
+
+    data_df = pd.DataFrame([data])
+    logging.debug(f"Data for prediction before reindexing:\n{data_df}")
+
+    X = data_df.drop(columns=['radiant_win'], errors='ignore').reindex(columns=columns, fill_value=0)
+    logging.debug(f"Data for prediction after reindexing:\n{X}")
+
+    if X.isnull().values.any():
+        logging.error("Data for prediction contains NaN values. Please check the input data.")
+        return None
+
+    try:
+        prediction = model.predict(X)
+        logging.debug(f"Prediction result: {prediction}")
+        if isinstance(prediction, np.ndarray):
+            prediction = prediction.tolist()  # Convert ndarray to list for JSON serialization
+        return prediction
+    except Exception as e:
+        logging.error(f"Error making prediction: {e}")
+        return None
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.form.to_dict()
+    logging.debug(f"Received data: {data}")
+
+    # Convert input data to the correct format
+    sample_data = {f"radiant_hero_{i}": int(data.get(f"radiant_hero_{i}", 0)) for i in range(5)}
+    sample_data.update({f"dire_hero_{i}": int(data.get(f"dire_hero_{i}", 0)) for i in range(5)})
+
+    prediction = make_prediction(sample_data)
+    
+    if prediction is not None:
+        result = "Radiant Win" if prediction[0] == 1 else "Radiant Loss"
+        return render_template('result.html', prediction=result)
+    else:
+        return render_template('result.html', prediction="Error making prediction")
+
+    import requests
+
+def fetch_heroes():
+    url = "https://api.opendota.com/api/heroes"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        heroes = response.json()
+        hero_dict = {hero['id']: hero['localized_name'] for hero in heroes}
+        return hero_dict
+    except requests.RequestException as e:
+        print(f"Error fetching heroes: {e}")
+        return {}
+
+# Fetch and store the heroes
+heroes = fetch_heroes()
+
+
+if __name__ == '__main__':
+    app.run(debug=True)

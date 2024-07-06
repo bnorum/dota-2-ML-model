@@ -4,7 +4,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, roc_curve, RocCurveDisplay
 import joblib
 import os
-import matplotlib.pyplot as plt
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 # Fetch recent public matches
 def fetch_recent_public_matches(num_matches=100):
@@ -44,25 +46,51 @@ def fetch_detailed_matches(match_ids):
 
 # Preprocess match data
 def preprocess_match_data(match_data):
-    features = {
-        'duration': int(match_data.get('duration', 0)),
-        'radiant_score': int(match_data.get('radiant_score', 0)),
-        'dire_score': int(match_data.get('dire_score', 0)),
-        'radiant_win': int(match_data.get('radiant_win', False)),
-        # Add more features as needed
-    }
-    return features
+    try:
+        logging.debug(f"Preprocessing match data: {match_data}")
+        players = match_data.get('players', [])
+
+        # Extract Radiant and Dire heroes
+        radiant_heroes = [int(player['hero_id']) for player in players if player['isRadiant']]
+        dire_heroes = [int(player['hero_id']) for player in players if not player['isRadiant']]
+
+        # Check if Radiant won the match
+        radiant_win = int(match_data.get('radiant_win', 0))  # Ensure it's an integer
+
+        # Construct the result dictionary with hero columns
+        features = {f'radiant_hero_{i}': (hero_id if i < len(radiant_heroes) else 0) 
+                    for i, hero_id in enumerate(radiant_heroes)}
+        features.update({f'dire_hero_{i}': (hero_id if i < len(dire_heroes) else 0) 
+                         for i, hero_id in enumerate(dire_heroes)})
+        
+        features['radiant_win'] = radiant_win
+
+        logging.debug(f"Preprocessed match features: {features}")
+        return features
+    except Exception as e:
+        logging.error(f"Error in preprocessing: {e}")
+        return None
 
 # Convert list of match data to DataFrame
 def preprocess_detailed_matches(detailed_matches):
-    preprocessed_data = [preprocess_match_data(match) for match in detailed_matches]
+    preprocessed_data = [preprocess_match_data(match) for match in detailed_matches if match]
+
+    if not preprocessed_data:
+        return pd.DataFrame()  # Return an empty DataFrame if no data
+
     df = pd.DataFrame(preprocessed_data)
-    # Ensure 'radiant_win' column is not included in feature columns
-    if 'radiant_win' not in df.columns:
-        raise KeyError("'radiant_win' column is missing in the preprocessed data")
-    print(f"DataFrame columns: {df.columns}")
-    print(f"First few rows:\n{df.head()}")
-    return df
+    
+    # Identify all possible hero columns to ensure consistency
+    radiant_columns = {col for col in df.columns if col.startswith('radiant_hero_')}
+    dire_columns = {col for col in df.columns if col.startswith('dire_hero_')}
+    
+    all_columns = list(radiant_columns | dire_columns)
+    
+    # Create a DataFrame with all possible columns and fill missing columns with zeros
+    final_df = pd.DataFrame(columns=all_columns + ['radiant_win'])
+    final_df = pd.concat([final_df, df], axis=0, ignore_index=True).fillna(0)
+    logging.debug(f"DataFrame columns: {final_df}")
+    return final_df
 
 # Fetch recent public matches
 recent_public_matches = fetch_recent_public_matches()
@@ -83,7 +111,6 @@ else:
     else:
         # Preprocess match data
         preprocessed_matches = preprocess_detailed_matches(detailed_matches)
-
         # Check if the DataFrame is empty
         if preprocessed_matches.empty:
             print("The DataFrame is empty. No data to train the model.")
@@ -92,58 +119,21 @@ else:
             X = preprocessed_matches.drop(columns=['radiant_win'])
             y = preprocessed_matches['radiant_win']
 
-            # Train the model
+            logging.debug(f"Training DataFrame columns: {X.columns}")
+            logging.debug(f"Training DataFrame first few rows:\n{X.head()}")
+
             model = RandomForestClassifier()
             model.fit(X, y)
 
-            # Save the trained model
+            # Save the trained model and the columns
             model_path = 'app/models/model.pkl'
+            columns_path = 'app/models/columns.pkl'
             os.makedirs(os.path.dirname(model_path), exist_ok=True)
             joblib.dump(model, model_path)
+            joblib.dump(X.columns, columns_path)
 
             # Verify the model is saved correctly
             if os.path.getsize(model_path) == 0:
                 print("The model file is empty!")
             else:
                 print("The model file is not empty.")
-
-            y_pred = model.predict(X)
-            y_pred_prob = model.predict_proba(X)[:, 1]
-
-            # Plot confusion matrix
-            cm = confusion_matrix(y, y_pred)
-            disp = ConfusionMatrixDisplay(confusion_matrix=cm)
-            disp.plot()
-            plt.title("Confusion Matrix")
-            plt.savefig('confusion_matrix.png')  # Save plot as image
-            plt.close()
-
-            # Plot ROC curve
-            fpr, tpr, _ = roc_curve(y, y_pred_prob)
-            roc_disp = RocCurveDisplay(fpr=fpr, tpr=tpr)
-            roc_disp.plot()
-            plt.title("ROC Curve")
-            plt.savefig('roc_curve.png')  # Save plot as image
-            plt.close()
-
-# To use the model for predictions, make sure you do not include the target variable in the features
-def make_prediction(model, data):
-    data_df = pd.DataFrame([data])
-    X = data_df.drop(columns=['radiant_win'], errors='ignore')  # Ensure 'radiant_win' is not in features
-    prediction = model.predict(X)
-    return prediction
-
-# Load the model and make a prediction
-model_path = 'app/models/model.pkl'
-if os.path.exists(model_path):
-    model = joblib.load(model_path)
-    sample_data = {
-        'duration': 3600,
-        'radiant_score': 30,
-        'dire_score': 25
-        # Add more sample data as needed
-    }
-    prediction = make_prediction(model, sample_data)
-    print(f"Prediction: {prediction}")
-else:
-    print("Model file does not exist.")
