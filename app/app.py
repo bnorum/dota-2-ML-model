@@ -10,7 +10,10 @@ def fetch_heroes():
         response = requests.get(url)
         response.raise_for_status()
         heroes = response.json()
-        hero_dict = {hero['id']: hero['localized_name'] for hero in heroes}
+        hero_dict = {hero['id']: {
+            'name': hero['localized_name'],
+            'image': f"https://dotabase.dillerm.io/vpk/panorama/images/heroes/{hero['name']}_png.png"
+        } for hero in heroes}
         return hero_dict
     except requests.RequestException as e:
         print(f"Error fetching heroes: {e}")
@@ -19,8 +22,8 @@ def fetch_heroes():
 app = Flask(__name__)
 
 # Load the model and columns
-model = joblib.load('app/models/model.pkl')
-with open('app/models/columns.pkl', 'rb') as f:
+model = joblib.load('models/model.pkl')
+with open('models/columns.pkl', 'rb') as f:
     columns = joblib.load(f)
 
 # Fetch and store heroes
@@ -44,10 +47,12 @@ def predict():
     data_df = pd.DataFrame([match_data])
     X = data_df.reindex(columns=columns, fill_value=0)
     
-    prediction = model.predict(X)
-    result = "Radiant Win" if prediction[0] == 1 else "Radiant Loss"
-    
-    return render_template('result.html', prediction=result)
+    # Get the probability prediction
+    prediction_proba = model.predict_proba(X)
+    radiant_win_proba = prediction_proba[0][1]  # Probability of radiant win
+    radiant_win_percent = radiant_win_proba * 100
 
+    return render_template('result.html', prediction=radiant_win_percent)
+#predict
 if __name__ == '__main__':
     app.run(debug=True)

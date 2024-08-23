@@ -4,7 +4,7 @@ $(document).ready(function() {
         event.preventDefault();
         var match_id = $('input[name="match_id"]').val();
         $.post('/analyze', {match_id: match_id}, function(data) {
-            $('#result').html('Radiant Win Prediction: ' + data.radiant_win);
+            $('#result').html('Radiant Win Prediction: ' + Math.round(data.radiant_win));
         });
     });
 });

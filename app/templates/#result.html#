@@ -3,14 +3,11 @@
 <html>
 <head>
   <title>Prediction Result</title>
-  
-  <link rel="stylesheet" href="static/css/style.css">
+  <style src="">
 </head>
 <body>
     <h1>Prediction Result</h1>
     <p>Radiant Team Win Probability: {{ prediction }}%</p>
-    <a href="/">
-      <button>Go Back</button>
-    </a>
+    <a href="/">Go Back</a>
 </body>
 </html>

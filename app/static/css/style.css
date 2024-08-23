@@ -1,4 +1,76 @@
-/* style.css */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Arial', sans-serif;
+    background-color: #282c34;
+    color: #ffffff;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    margin-top: 20px;
+    font-size: 36px;
+}
+
+h2 {
+    font-size: 28px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.heroes {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    background-color: #3a3f47;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    width: 80%;
+    margin: 20px auto;
+}
+
+.hero-side {
+    flex: 1;
+    padding: 10px;
+}
+
+.hero-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    background-color: #444b54;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.hero-select select {
+    width: 200px;
+    padding: 5px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #3a3f47;
+    color: #ffffff;
+}
+
+.hero-select img {
+    margin-left: 20px;
+    width: 60px;
+    height: 34px;
+    border-radius: 5px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 18px;
+    color: #ffffff;
+    background-color: #61dafb;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #21a1f1;
 }

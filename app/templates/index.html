@@ -2,31 +2,63 @@
 <html>
 <head>
     <title>Dota 2 Match Prediction</title>
+    <link rel="stylesheet" href="static/css/style.css">
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+          const heroes = {{ heroes|tojson }};
+          
+          function updateHeroImage(selectElement, imgElementId) {
+              const heroId = selectElement.value;
+              const imgElement = document.getElementById(imgElementId);
+              imgElement.src = heroes[heroId].image;
+          }
+
+          // Initialize images based on the default selected heroes
+          for (let i = 0; i < 5; i++) {
+              const radiantSelect = document.querySelector(`select[name="radiant_hero_${i}"]`);
+              const direSelect = document.querySelector(`select[name="dire_hero_${i}"]`);
+              updateHeroImage(radiantSelect, `radiant_hero_img_${i}`);
+              updateHeroImage(direSelect, `dire_hero_img_${i}`);
+          }
+
+          window.updateHeroImage = updateHeroImage;
+      });
+    </script>
 </head>
 <body>
     <h1>Dota 2 Match Prediction</h1>
     <form action="/predict" method="post">
-        <h2>Select Radiant Heroes</h2>
-        {% for i in range(5) %}
-            <select name="radiant_hero_{{ i }}">
-                {% for id, name in heroes.items() %}
-                    <option value="{{ id }}">{{ name }}</option>
-                {% endfor %}
+      <div class="heroes">
+        <div class="hero-side">
+          <h2>Radiant Heroes</h2>
+          {% for i in range(5) %}
+          <div class="hero-select">
+            <select name="radiant_hero_{{ i }}" onchange="updateHeroImage(this, 'radiant_hero_img_{{ i }}')">
+              {% for id, hero in heroes.items() %}
+              <option value="{{ id }}">{{ hero.name }}</option>
+              {% endfor %}
             </select>
-            <br>
-        {% endfor %}
+            <img id="radiant_hero_img_{{ i }}" src="" alt="Radiant Hero {{ i }}">
+          </div>
+          {% endfor %}
+        </div>
 
-        <h2>Select Dire Heroes</h2>
-        {% for i in range(5) %}
-            <select name="dire_hero_{{ i }}">
-                {% for id, name in heroes.items() %}
-                    <option value="{{ id }}">{{ name }}</option>
-                {% endfor %}
+        <div class="hero-side">
+          <h2>Dire Heroes</h2>
+          {% for i in range(5) %}
+          <div class="hero-select">
+            <select name="dire_hero_{{ i }}" onchange="updateHeroImage(this, 'dire_hero_img_{{ i }}')">
+              {% for id, hero in heroes.items() %}
+              <option value="{{ id }}">{{ hero.name }}</option>
+              {% endfor %}
             </select>
-            <br>
-        {% endfor %}
-
+            <img id="dire_hero_img_{{ i }}" src="" alt="Dire Hero {{ i }}">
+          </div>
+          {% endfor %}
+        </div>
+      </div>
         <button type="submit">Predict</button>
     </form>
 </body>
+
 </html>
