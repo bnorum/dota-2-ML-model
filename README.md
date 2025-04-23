@@ -1,7 +1,3 @@
-Certainly! Here's a comprehensive `README.md` for the [bnorum/dota-2-ML-model](https://github.com/bnorum/dota-2-ML-model) project, designed to provide clarity and ease of use for users and contributors:
-
----
-
 # Dota 2 Machine Learning Model
 
 This project utilizes machine learning to predict the outcome of Dota 2 matches based on hero drafts. By leveraging the OpenDota API, Flask, and Scikit-Learn, the model achieves an impressive **85% accuracy** in predicting match outcomes.
